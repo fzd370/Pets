@@ -22,8 +22,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,13 +36,18 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.example.android.pets.data.PetContract;
 import com.example.android.pets.data.PetContract.PetEntry;
 import com.example.android.pets.data.PetDbHelper;
 
 /**
  * Displays list of pets that were entered and stored in the app.
  */
-public class CatalogActivity extends AppCompatActivity {
+public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final int PET_LOADER=0;
+
+    PetCursorAdapter mCursorAdapter;
 
     /** Database helper that will provide us access to the database */
     private PetDbHelper mDbHelper;
@@ -67,41 +77,12 @@ public class CatalogActivity extends AppCompatActivity {
         // Find and set empty view on the ListView, so that it only shows when the list has 0 items.
         View emptyView = findViewById(R.id.empty_view);
         petListView.setEmptyView(emptyView);
-    }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    @Override
-    protected void onStart() {
-        super.onStart();
-        displayDatabaseInfo();
-    }
+        mCursorAdapter= new PetCursorAdapter(this,null);
+        petListView.setAdapter(mCursorAdapter);
 
-    /**
-     * Temporary helper method to display information in the onscreen TextView about the state of
-     * the pets database.
-     */
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    private void displayDatabaseInfo() {
+        LoaderManager.getInstance(this).initLoader(PET_LOADER, null, this);
 
-
-        String[] projection={
-                PetEntry._ID,
-                PetEntry.COLUMN_PET_BREED,
-                PetEntry.COLUMN_PET_GENDER,
-                PetEntry.COLUMN_PET_NAME,
-                PetEntry.COLUMN_PET_WEIGHT
-        };
-
-        Cursor cursor=getContentResolver().query(PetEntry.CONTENT_URI,projection,null,null,null);
-
-        // Find ListView to populate
-        ListView petListView = findViewById(R.id.listview_pet);
-
-        // Setup cursor adapter using cursor from last step
-        PetCursorAdapter petAdapter = new PetCursorAdapter(this, cursor);
-
-        // Attach cursor adapter to the ListView
-        petListView.setAdapter(petAdapter);
     }
 
     /**
@@ -142,7 +123,6 @@ public class CatalogActivity extends AppCompatActivity {
             // Respond to a click on the "Insert dummy data" menu option
             case R.id.action_insert_dummy_data:
                 insertPet();
-                displayDatabaseInfo();
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
@@ -150,5 +130,26 @@ public class CatalogActivity extends AppCompatActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @NonNull
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, @Nullable Bundle bundle) {
+        String[] projection={
+                PetEntry._ID,
+                PetEntry.COLUMN_PET_BREED,
+                PetEntry.COLUMN_PET_NAME,
+        };
+        return new CursorLoader(this, PetEntry.CONTENT_URI,projection,null,null,null);
+    }
+
+    @Override
+    public void onLoadFinished(@NonNull Loader<Cursor> loader, Cursor cursor) {
+        mCursorAdapter.swapCursor(cursor);
+    }
+
+    @Override
+    public void onLoaderReset(@NonNull Loader<Cursor> loader) {
+        mCursorAdapter.swapCursor(null);
     }
 }
