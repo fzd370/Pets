@@ -88,7 +88,7 @@ public class PetProvider extends ContentProvider {
         }
 
         Integer gender=values.getAsInteger(PetEntry.COLUMN_PET_WEIGHT);
-        if(gender == null||PetEntry.isValidGender(gender)) {
+        if(gender == null||!PetEntry.isValidGender(gender)) {
             throw new IllegalArgumentException("Please select a gender");
         }
 
